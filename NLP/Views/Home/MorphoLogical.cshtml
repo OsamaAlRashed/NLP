@@ -1,0 +1,54 @@
+﻿@using NLP.Models;
+
+<div class="card">
+    <div class="card-header">
+        المحلل الصرفي
+    </div>
+
+    <div class="card-body">
+        <div class="form-group row">
+            <div class="col-md-12">
+                <label>الدخل:</label>
+                <textarea id="input" class="form-control" rows=5></textarea>
+            </div>
+            <div class="col-md-12 my-4">
+                <button id="transformBtn" class="btn btn-success btn-xs">تحويل</button>
+                <button id="resetBtn" class="btn btn-danger btn-xs">مسح</button>
+            </div>
+            <div class="col-md-12">
+                <label>الخرج:</label>
+                <textarea type="text" id="output" class="form-control" rows=5 readonly></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-footer">
+
+    </div>
+</div><!-- /.card -->
+
+@section Scripts {
+    <script>
+        $(document).ready(function (e) {
+            $('#transformBtn').on('click', function(){
+                loadingPage({ action: 'add' })
+                var input = $('#input').val();
+                $.ajax({
+                    type: 'POST',
+                    url: '/Home/ExcuteMorphoLogical',
+                    data: { input : input },
+                }).done((data) => {
+                    console.log('success: ' + data);
+                    $('#output').val(data)
+                    loadingPage({ action: 'remove' })
+                });
+            })
+
+            $('#resetBtn').on('click', function(){
+                $('#input').val('');
+                $('#output').val('');
+            })
+        })
+    </script>
+}
+

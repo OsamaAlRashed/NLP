@@ -1,0 +1,98 @@
+﻿@using X.PagedList.Mvc.Core;
+@using NLP.Models;
+@using X.PagedList.Web.Common
+@model X.PagedList.IPagedList<AudioFeature>
+@inject IWebHostEnvironment webhost;
+
+
+<link href="~/css/PagedList.css" rel="stylesheet" type="text/css" />
+
+<div class="card">
+    <div class="card-body">
+        @using (Html.BeginForm("AudioAnalyzer", "Home", new
+        {
+            type = ViewBag.CurrentType,
+        }, FormMethod.Post, null, new { id = "form1" }))
+        {
+            <div class="row">
+                @Html.DropDownList("type", new SelectList(ViewBag.AudioForTypes, "Id", "Name"), "اختر من فضلك ..", htmlAttributes: new { @class = "form-control select" })
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        @Html.ActionLink("التعرف على الصوت", "Microphone", "Home", new { }, new { @class = "btn btn-primary btn-xs" })
+        @Html.ActionLink("إضافة صوت جديد", "UploadAudio", "Home", new { }, new { @class = "btn btn-success btn-xs" })
+    </div>
+
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <table class="table table-bordered">
+                <tr>
+                    <th>الكلمة</th>
+                    <th>RMS</th>
+                    <th>العبورات الصفرية</th>
+                    <th>الطاقة</th>
+                    <th>الملف</th>
+                    <th></th>
+                </tr>
+
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            @item.ForType.ToString()
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.RMS)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.ZCR)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Energy)
+                        </td>
+                        @{
+                            var path = "https://localhost:44322/" + item.Path;
+                        }
+                        <td>
+                            <audio controls>
+                                <source src="@path">
+                            </audio>
+                        </td>
+                        <td>
+                            <a asp-action="DeleteAudio" asp-route-id="@item.Id" class = "btn btn-danger btn-xs fa fa-trash-alt"></a>
+                        </td>
+                    </tr>
+                }
+            </table>
+        }
+        else
+        {
+            <div class="alert alert-info alert-dismissable">
+                <h4><i class="icon fa fa-info"></i> Aa aa!</h4>
+                Unfortunately, No Result To Show :(
+            </div>
+        }
+    </div>
+
+    <div class="card-footer">
+        <div class="float-left">
+            @Html.PagedListPager(Model, page => Url.Action("AudioAnalyzer", new { page, type = ViewBag.CurrentType }), new PagedListRenderOptions { MaximumPageNumbersToDisplay = 6 })
+        </div>
+        <div class="float-right pagination">
+            Page @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) / @Model.PageCount
+        </div>
+    </div>
+</div><!-- /.card -->
+
+@section Scripts {
+    <script>
+        $('.select').on('change', function () {
+            $('#form1').submit();
+        });
+    </script>
+}

@@ -1,0 +1,144 @@
+﻿<style>
+    .dot {
+        height: 300px;
+        width: 300px;
+        background-color: #bb2d3b;
+        border-radius: 50%;
+        position: absolute;
+        top:  50%;
+        left: 50%;
+        transform: translate(-50%,-50%);
+    }
+</style>
+
+<div class="dot btn" id="button">
+    <i class="fa fa-microphone fa-2xl" style="color: white"></i>
+</div>
+
+
+
+<div class="row">
+    <div class="col-md-2">
+    </div>
+    <div class="col-md-3">
+        <label for="level">Rms</label>
+        <input type="range"
+                id="levelRangeRms"
+                name="level"
+                min="0.0"
+                max="1.0"
+                step="0.001" />
+    </div>
+    <div class="col-md-3">
+        <label for="level">Zero Crossing</label>
+        <input type="range"
+            id="levelRangeZcr"
+            name="level"
+            min="0"
+            max="255"
+            step="1" />
+    </div>
+    <div class="col-md-3">
+        <label for="level">Energy</label>
+        <input type="range"
+            id="levelRangeEnergy"
+            name="level"
+            min="0.0"
+            max="30.0"
+            step="0.1" />
+    </div>
+</div>
+
+<div class="result mt-4" style="text-align: center">
+    
+</div>
+
+@section Scripts{
+    <script>
+         $(document).ready(function (e) {
+            var flag = 0;
+            var rmsArr = []
+            var zcrArr = []
+            var energyArr = [];
+            var local_stream;
+
+            $('#button').on('click', function(){
+                if(flag == 0){
+                    flag = 1;
+                    $('#button').css('background-color', '#46a68c')
+                    //add constraints object
+                    var constraints = { audio: true, video: false};
+
+                    //call getUserMedia, then the magic
+                    navigator.mediaDevices.getUserMedia(constraints).then(function(stream){
+                        local_stream = stream;
+                        /* globals Meyda */
+                        const audioContext = new AudioContext();
+                        const source = audioContext.createMediaStreamSource(stream);
+                        source.connect(audioContext.destination);
+
+                        const levelRangeRms = document.getElementById("levelRangeRms");
+                        const levelRangeZcr = document.getElementById("levelRangeZcr");
+                        const levelRangeEnergy = document.getElementById("levelRangeEnergy");
+
+                        if (typeof Meyda === "undefined") {
+                          console.log("Meyda could not be found! Have you included it?");
+                        }
+                        else {
+                          const analyzer = Meyda.createMeydaAnalyzer({
+                            "audioContext": audioContext,
+                            "source": source,
+                            "bufferSize": 512,
+                            "featureExtractors": ["rms","zcr","energy"],
+                            "callback": features => {
+
+                              rmsArr.push(features.rms)
+                              levelRangeRms.value = features.rms;
+
+                              zcrArr.push(features.zcr)
+                              levelRangeZcr.value = features.zcr;
+
+                              energyArr.push(features.energy)
+                              levelRangeEnergy.value = features.energy;
+                            }
+                          });
+                          analyzer.start();
+                        }
+                        }).catch(function(err){
+                            console.log("yikes, and err!" + err.message);
+                        });
+                }
+                else{
+                    local_stream.getAudioTracks()[0].enabled = false;
+                    flag = 0;
+                    $('#button').css('background-color', '#bb2d3b')
+                    const rmsSum = rmsArr.reduce((a, b) => a + b, 0);
+                    const rmsAvg = (rmsSum / rmsArr.length) || 0;
+
+                    const zcrSum = zcrArr.reduce((a, b) => a + b, 0);
+                    const zcrAvg = (zcrSum / zcrArr.length) || 0;
+
+                    const energySum = energyArr.reduce((a, b) => a + b, 0);
+                    const energyAvg = (energySum / energyArr.length) || 0;
+
+                    loadingPage({ action: 'add' })
+                    $.ajax({
+                    type: 'POST',
+                    url: '/Home/Microphone',
+                    data: { rMS : rmsAvg, zCR: zcrAvg, energy: energyAvg },
+                    }).done((data) => {
+                        if(data.status){
+                            $('.result').html('')
+                            $('.result').append(`<strong style="color: green">تم التعرف على الكلمة ${data.data}</strong>`)
+                        }
+                        else{
+                            $('.result').html('')
+                            $('.result').append(`<strong style="color: red">لم يتم التعرف على الكلمة</strong>`)
+                        }
+                        loadingPage({ action: 'remove' })
+                    });
+                }
+            })
+         })
+     </script>
+}

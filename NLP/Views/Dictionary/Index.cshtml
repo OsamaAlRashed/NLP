@@ -1,0 +1,80 @@
+﻿@using X.PagedList.Mvc.Core;
+@using NLP.Models;
+@using X.PagedList.Web.Common
+@model X.PagedList.IPagedList<Word>
+
+
+<link href="~/css/PagedList.css" rel="stylesheet" type="text/css" />
+
+<div class="card">
+    <div class="card-body">
+        @using (Html.BeginForm("Index", "Dictionary", new
+        {
+            type = ViewBag.CurrentType,
+        }, FormMethod.Post, null, new { id = "form1" }))
+        {
+            <div class="row">
+                @Html.DropDownList("type", new SelectList(ViewBag.WordTypes, "Id", "Name"), "اختر من فضلك ..", htmlAttributes: new { @class = "form-control select" })
+                        
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        @Html.ActionLink("كلمة جديدة", "Add", "Dictionary", new { }, new { @class = "btn btn-primary btn-xs" })
+    </div>
+
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <table class="table table-bordered">
+                <tr>
+                    <th>الكلمة</th>
+                    <th>النوع</th>
+                    <th style="width: 100px"></th>
+                </tr>
+
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Text)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Type)
+                        </td>
+                        <td>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class = "btn btn-danger btn-xs fa fa-trash-alt"></a>
+                        </td>
+                    </tr>
+                }
+            </table>
+        }
+        else
+        {
+            <div class="alert alert-info alert-dismissable">
+                <h4><i class="icon fa fa-info"></i> Aa aa!</h4>
+                Unfortunately, No Result To Show :(
+            </div>
+        }
+    </div>
+
+    <div class="card-footer">
+        <div class="float-left">
+            @Html.PagedListPager(Model, page => Url.Action("Index", new { page, type = ViewBag.CurrentType }), new PagedListRenderOptions { MaximumPageNumbersToDisplay = 6 })
+        </div>
+        <div class="float-right pagination">
+            Page @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) / @Model.PageCount
+        </div>
+    </div>
+</div><!-- /.card -->
+
+@section Scripts {
+    <script>
+        $('.select').on('change', function () {
+            $('#form1').submit();
+        });
+    </script>
+}
